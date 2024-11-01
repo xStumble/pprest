@@ -6,6 +6,7 @@ import me.xstumble.ppcrudbootsecurity.exceptions.EntityExistsExceptionWithType;
 import me.xstumble.ppcrudbootsecurity.exceptions.UserValidationException;
 import me.xstumble.ppcrudbootsecurity.models.User;
 import me.xstumble.ppcrudbootsecurity.services.UserService;
+import org.springframework.core.MethodParameter;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -13,6 +14,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BeanPropertyBindingResult;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
+import org.springframework.validation.method.MethodValidationException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -58,7 +61,6 @@ public class AdminRESTController {
 
     @PostMapping("/edituser")
     public ResponseEntity<HttpStatus> editUser(@Valid @RequestBody User user, BindingResult bindingResult) {
-
         List<FieldError> fieldErrors = bindingResult.getFieldErrors().stream()
                 .filter(fer -> !fer.getField().equals("password")).toList();
         BindingResult sortedBindingResult = new BeanPropertyBindingResult(user, "user");
