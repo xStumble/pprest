@@ -48,32 +48,23 @@ public class AdminRESTController {
 
 
     @PostMapping("/adduser")
-    public ResponseEntity<Long> addUser(@RequestBody @Valid User user, BindingResult bindingResult) {
+    public ResponseEntity<Long> addUser(@Valid @RequestBody User user, BindingResult bindingResult) {
         if (bindingResult.hasErrors()) {
-            Map<String, List<String>> errors = new HashMap<>();
-            bindingResult.getFieldErrors().forEach(err -> errors.put(err.getField(), new ArrayList<>()));
-            bindingResult.getFieldErrors().forEach(err -> errors.get(err.getField()).add(err.getDefaultMessage()));
-            throw new UserValidationException(errors);
+            throw new UserValidationException(bindingResult);
         }
-
-
         long id = userService.addUser(user);
         return ResponseEntity.status(HttpStatus.CREATED).body(id);
     }
 
     @PostMapping("/edituser")
-    public ResponseEntity<HttpStatus> editUser(@RequestBody @Valid User user, BindingResult bindingResult) {
+    public ResponseEntity<HttpStatus> editUser(@Valid @RequestBody User user, BindingResult bindingResult) {
 
         List<FieldError> fieldErrors = bindingResult.getFieldErrors().stream()
                 .filter(fer -> !fer.getField().equals("password")).toList();
         BindingResult sortedBindingResult = new BeanPropertyBindingResult(user, "user");
         fieldErrors.forEach(sortedBindingResult::addError);
-
         if (sortedBindingResult.hasErrors()) {
-            Map<String, List<String>> errors = new HashMap<>();
-            sortedBindingResult.getFieldErrors().forEach(err -> errors.put(err.getField(), new ArrayList<>()));
-            sortedBindingResult.getFieldErrors().forEach(err -> errors.get(err.getField()).add(err.getDefaultMessage()));
-            throw new UserValidationException(errors);
+            throw new UserValidationException(sortedBindingResult);
         }
 
         userService.updateUser(user.getId(), user);
@@ -89,7 +80,9 @@ public class AdminRESTController {
 
     @ExceptionHandler
     private ResponseEntity<Map<String, List<String>>> handleException(UserValidationException e) {
-        Map<String, List<String>> errors = e.getErrors();
+        Map<String, List<String>> errors = new HashMap<>();
+        e.getBindingResult().getFieldErrors().forEach(err -> errors.put(err.getField(), new ArrayList<>()));
+        e.getBindingResult().getFieldErrors().forEach(err -> errors.get(err.getField()).add(err.getDefaultMessage()));
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errors);
     }
 

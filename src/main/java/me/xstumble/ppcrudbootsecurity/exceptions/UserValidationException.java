@@ -1,18 +1,16 @@
 package me.xstumble.ppcrudbootsecurity.exceptions;
 
-import java.util.List;
-import java.util.Map;
+import org.springframework.validation.BindingResult;
 
 public class UserValidationException extends RuntimeException {
 
-    private final Map<String, List<String>> errors;
+    private final BindingResult bindingResult;
 
-    public UserValidationException(Map<String, List<String>> errors) {
-        this.errors = errors;
+    public UserValidationException(BindingResult bindingResult) {
+        this.bindingResult = bindingResult;
     }
 
-    public Map<String, List<String>> getErrors() {
-        return errors;
+    public BindingResult getBindingResult() {
+        return bindingResult;
     }
-
 }
