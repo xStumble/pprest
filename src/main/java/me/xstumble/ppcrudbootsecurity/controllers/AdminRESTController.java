@@ -10,7 +10,6 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.validation.BeanPropertyBindingResult;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
@@ -32,11 +31,9 @@ import java.util.Map;
 public class AdminRESTController {
 
     private final UserService userService;
-    private final PasswordEncoder passwordEncoder;
 
-    public AdminRESTController(UserService userService, PasswordEncoder passwordEncoder) {
+    public AdminRESTController(UserService userService) {
         this.userService = userService;
-        this.passwordEncoder = passwordEncoder;
     }
 
     @GetMapping("/getallusers")
@@ -59,9 +56,8 @@ public class AdminRESTController {
             throw new UserValidationException(errors);
         }
 
-        user.setPassword(passwordEncoder.encode(user.getPassword()));
-        long id = userService.addUserWithID(user);
 
+        long id = userService.addUser(user);
         return ResponseEntity.status(HttpStatus.CREATED).body(id);
     }
 
@@ -78,12 +74,6 @@ public class AdminRESTController {
             sortedBindingResult.getFieldErrors().forEach(err -> errors.put(err.getField(), new ArrayList<>()));
             sortedBindingResult.getFieldErrors().forEach(err -> errors.get(err.getField()).add(err.getDefaultMessage()));
             throw new UserValidationException(errors);
-        }
-
-        if (user.getPassword() == null || user.getPassword().isEmpty() || user.getPassword().length() < 4) {
-            user.setPassword(userService.getUser(user.getId()).getPassword());
-        } else {
-            user.setPassword(passwordEncoder.encode(user.getPassword()));
         }
 
         userService.updateUser(user.getId(), user);

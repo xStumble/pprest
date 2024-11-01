@@ -4,6 +4,7 @@ import jakarta.persistence.EntityNotFoundException;
 import me.xstumble.ppcrudbootsecurity.exceptions.EntityExistsExceptionWithType;
 import me.xstumble.ppcrudbootsecurity.models.User;
 import me.xstumble.ppcrudbootsecurity.repositories.UserRepository;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,27 +15,30 @@ import java.util.Optional;
 public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
-    public UserServiceImpl(UserRepository userRepository) {
+    public UserServiceImpl(UserRepository userRepository, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     @Transactional
     @Override
-    public void addUser(User user) {
-        saveIfNotUsed(user);
+    public long addUser(User user) {
+        user.setPassword(passwordEncoder.encode(user.getPassword()));
+        return saveIfNotUsed(user);
     }
 
-    @Transactional
-    @Override
-    public long addUserWithID(User user) {
-        return saveIfNotUsedWithID(user);
-    }
 
     @Transactional
     @Override
     public void updateUser(long id, User user) {
         if (userRepository.existsById(id)) {
+            if (user.getPassword() == null || user.getPassword().isEmpty() || user.getPassword().length() < 4) {
+                user.setPassword(getUser(user.getId()).getPassword());
+            } else {
+                user.setPassword(passwordEncoder.encode(user.getPassword()));
+            }
             saveIfNotUsed(user);
         } else {
             throw new EntityNotFoundException("User with id " + id + " not found");
@@ -69,13 +73,7 @@ public class UserServiceImpl implements UserService {
     }
 
 
-    private void saveIfNotUsed(User user) {
-        if (checkIfUserAvailable(user)) {
-            userRepository.save(user);
-        }
-    }
-
-    private long saveIfNotUsedWithID(User user) {
+    private long saveIfNotUsed(User user) {
         if (checkIfUserAvailable(user)) {
             userRepository.save(user);
             return user.getId();
