@@ -2,20 +2,15 @@ package me.xstumble.ppcrudbootsecurity.controllers;
 
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
-import me.xstumble.ppcrudbootsecurity.exceptions.EntityExistsExceptionWithType;
 import me.xstumble.ppcrudbootsecurity.exceptions.UserValidationException;
 import me.xstumble.ppcrudbootsecurity.models.User;
 import me.xstumble.ppcrudbootsecurity.services.UserService;
-import org.springframework.core.MethodParameter;
-import org.springframework.http.HttpHeaders;
+import me.xstumble.ppcrudbootsecurity.util.UserValidator;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BeanPropertyBindingResult;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
-import org.springframework.validation.method.MethodValidationException;
-import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -34,9 +29,11 @@ import java.util.Map;
 public class AdminRESTController {
 
     private final UserService userService;
+    private final UserValidator userValidator;
 
-    public AdminRESTController(UserService userService) {
+    public AdminRESTController(UserService userService, UserValidator userValidator) {
         this.userService = userService;
+        this.userValidator = userValidator;
     }
 
     @GetMapping("/getallusers")
@@ -52,15 +49,18 @@ public class AdminRESTController {
 
     @PostMapping("/adduser")
     public ResponseEntity<Long> addUser(@Valid @RequestBody User user, BindingResult bindingResult) {
+        userValidator.validate(user, bindingResult);
         if (bindingResult.hasErrors()) {
             throw new UserValidationException(bindingResult);
         }
+
         long id = userService.addUser(user);
         return ResponseEntity.status(HttpStatus.CREATED).body(id);
     }
 
     @PostMapping("/edituser")
     public ResponseEntity<HttpStatus> editUser(@Valid @RequestBody User user, BindingResult bindingResult) {
+        userValidator.validate(user, bindingResult);
         List<FieldError> fieldErrors = bindingResult.getFieldErrors().stream()
                 .filter(fer -> !fer.getField().equals("password")).toList();
         BindingResult sortedBindingResult = new BeanPropertyBindingResult(user, "user");
@@ -86,14 +86,6 @@ public class AdminRESTController {
         e.getBindingResult().getFieldErrors().forEach(err -> errors.put(err.getField(), new ArrayList<>()));
         e.getBindingResult().getFieldErrors().forEach(err -> errors.get(err.getField()).add(err.getDefaultMessage()));
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errors);
-    }
-
-    @ExceptionHandler
-    private ResponseEntity<String> handleException(EntityExistsExceptionWithType e) {
-        String response = "{\"" + e.getType() + "\": [\"" + e.getMessage() + "\"]}";
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        return new ResponseEntity<>(response, headers, HttpStatus.BAD_REQUEST);
     }
 
     @ExceptionHandler ResponseEntity<String> handleException(EntityNotFoundException e) {

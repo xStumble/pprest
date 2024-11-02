@@ -1,7 +1,6 @@
 package me.xstumble.ppcrudbootsecurity.services;
 
 import jakarta.persistence.EntityNotFoundException;
-import me.xstumble.ppcrudbootsecurity.exceptions.EntityExistsExceptionWithType;
 import me.xstumble.ppcrudbootsecurity.models.User;
 import me.xstumble.ppcrudbootsecurity.repositories.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -26,7 +25,7 @@ public class UserServiceImpl implements UserService {
     @Override
     public long addUser(User user) {
         user.setPassword(passwordEncoder.encode(user.getPassword()));
-        return saveIfNotUsed(user);
+        return userRepository.save(user).getId();
     }
 
 
@@ -39,7 +38,7 @@ public class UserServiceImpl implements UserService {
             } else {
                 user.setPassword(passwordEncoder.encode(user.getPassword()));
             }
-            saveIfNotUsed(user);
+            userRepository.save(user);
         } else {
             throw new EntityNotFoundException("User with id " + id + " not found");
         }
@@ -72,31 +71,4 @@ public class UserServiceImpl implements UserService {
         return userRepository.findAll();
     }
 
-
-    private long saveIfNotUsed(User user) {
-        if (checkIfUserAvailable(user)) {
-            userRepository.save(user);
-            return user.getId();
-        }
-        return 0;
-    }
-
-    private boolean checkIfUserAvailable(User user) {
-        Optional<User> userCheckUsername = userRepository.findByUsername(user.getUsername());
-        Optional<User> userCheckEmail = userRepository.findByEmail(user.getEmail());
-
-        if (userCheckUsername.isPresent()) {
-            if (!userCheckUsername.get().getId().equals(user.getId())) {
-                throw new EntityExistsExceptionWithType("Username is already taken!", "username");
-            }
-        }
-
-        if (userCheckEmail.isPresent()) {
-            if (!userCheckEmail.get().getId().equals(user.getId())) {
-                throw new EntityExistsExceptionWithType("Email is already taken!", "email");
-            }
-        }
-
-        return true;
-    }
 }
