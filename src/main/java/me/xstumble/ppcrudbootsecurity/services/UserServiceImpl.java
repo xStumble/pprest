@@ -28,7 +28,6 @@ public class UserServiceImpl implements UserService {
         return userRepository.save(user).getId();
     }
 
-
     @Transactional
     @Override
     public void updateUser(long id, User user) {
